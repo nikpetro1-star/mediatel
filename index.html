@@ -228,15 +228,30 @@ function matchingKeys(index, q){
 }
 
 function directResults(mode, q){
-  // Collect every record touching the query across ALL its fields (exam, hospital, ype, detail)
-  // and merge them into one flat, sorted list — no grouping-key ambiguity, no click-through.
-  return allRecords().filter(r => {
-    if(!(r.exam || r.hospital)) return false;
-    return wordMatch(normalize(r.exam||""), q) ||
-           wordMatch(normalize(r.hospital||""), q) ||
-           wordMatch(normalize(r.ype||""), q) ||
-           normalize(r.detail||"").includes(q);
+  // EXAM mode.
+  // 1) Records that are specifically ABOUT this exam (r.exam matches) — shown in full.
+  const direct = allRecords().filter(r => r.exam && wordMatch(normalize(r.exam), q));
+
+  // 2) The big "Χαρτογράφηση" hospital-info blobs (cat "map") sometimes mention a specific
+  //    exam in passing (e.g. "Υπέρηχοι (Τρίπλεξ): 2132058379") buried in a huge paragraph.
+  //    Scan those blobs sentence-by-sentence and pull out ONLY the sentence(s) that actually
+  //    mention the searched exam — never the whole blob.
+  const extracted = [];
+  allRecords().filter(r => r.cat === "map" && r.detail).forEach(r => {
+    const sentences = r.detail.split(/(?<=[.,\n])\s*/).map(s => s.trim()).filter(s => s.length > 0);
+    const hits = sentences.filter(s => wordMatch(normalize(s), q));
+    if(hits.length){
+      extracted.push({
+        cat: "map-extract",
+        hospital: r.hospital,
+        exam: query,
+        detail: hits.join(" "),
+        custom: false
+      });
+    }
   });
+
+  return direct.concat(extracted);
 }
 
 function renderDirectList(matches, mode){
