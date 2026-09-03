@@ -431,12 +431,21 @@ function render(){
 
   if(interpreted.type === "combo"){
     const matches = comboResults(interpreted.hospital, interpreted.exam);
-    if(!matches || matches.length === 0){
-      contentEl.innerHTML = `<div class="empty">Δεν βρέθηκε αυτός ο συνδυασμός. Δοκίμασε μόνο το νοσοκομείο ή μόνο την εξέταση.</div>`;
+    if(matches && matches.length){
+      const title = `${interpreted.hospital} — ${interpreted.exam}`;
+      renderDirectList(matches, "hospital", title, normalize(interpreted.exam));
       return;
     }
-    const title = `${interpreted.hospital} — ${interpreted.exam}`;
-    renderDirectList(matches, "hospital", title, normalize(interpreted.exam));
+    // The "hospital" half of the split was too loose/generic (e.g. a city name like
+    // "Αθήνα" that happens to fuzzy-match one specific hospital's name) and produced an
+    // empty intersection. Don't dead-end — fall back to showing the exam on its own,
+    // which is almost always the useful answer ("where can I get an MRI").
+    const fallback = directResults("exam", normalize(interpreted.exam));
+    if(fallback.length){
+      renderDirectList(fallback, "exam", undefined, normalize(interpreted.exam));
+      return;
+    }
+    contentEl.innerHTML = `<div class="empty">Δεν βρέθηκε τίποτα για "${esc(query)}". Δοκίμασε πιο απλή αναζήτηση.</div>`;
     return;
   }
 
