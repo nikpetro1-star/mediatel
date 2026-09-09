@@ -277,10 +277,66 @@ function examMatchesWhole(q){
   return allRecords().filter(r => r.exam && wordMatch(normalize(r.exam), nq));
 }
 
+// ---- Region (ΥΠΕ) awareness ----
+// A region NAME (Αττική, Θεσσαλονίκη, ...) is not a specific hospital — treating it as a
+// fuzzy hospital-name guess (e.g. "Αττική" ~ any hospital whose official name happens to
+// contain "...ΑΤΤΙΚΗΣ...") silently drops the region filter instead of applying it. Build
+// real region membership from what we actually know (the record's own ΥΠΕ field, or which
+// source file/category it came from), and fall back to hospital-name lookup tables built
+// from the reliably-tagged records for everything else (mostly the notebook entries).
+// Exact accepted spellings only (no fuzzy prefix matching here) — "Αττική" (the region)
+// and "Αττικόν" (the hospital's actual proper name) are one letter apart and MUST stay
+// distinguishable, which a fuzzy/closeMatch check cannot reliably do.
+const REGION_WORD_FORMS = {
+  "ΑΤΤΙΚΗ": ["ΑΤΤΙΚΗ", "ΑΤΤΙΚΗΣ", "ΑΤΤΙΚΟ", "ΑΤΤΙΚΗΝ", "ΑΘΗΝΑ", "ΑΘΗΝΩΝ", "ΑΘΗΝΑΣ"],
+  "ΘΕΣΣΑΛΟΝΙΚΗ": ["ΘΕΣΣΑΛΟΝΙΚΗ", "ΘΕΣΣΑΛΟΝΙΚΗΣ", "ΘΕΣΣΑΛΟΝΙΚΗΝ"],
+};
+
+function buildRegionHospitalSets(){
+  const sets = { "ΑΤΤΙΚΗ": new Set(), "ΘΕΣΣΑΛΟΝΙΚΗ": new Set() };
+  allRecords().forEach(r => {
+    if(!r.hospital) return;
+    const ypeN = normalize(r.ype || "");
+    let region = null;
+    if(ypeN.includes("ΑΤΤΙΚΗΣ")) region = "ΑΤΤΙΚΗ";
+    else if(ypeN.includes("ΘΕΣΣΑΛΟΝΙΚΗΣ")) region = "ΘΕΣΣΑΛΟΝΙΚΗ";
+    else if(r.cat === "attiki" || r.cat === "evag") region = "ΑΤΤΙΚΗ";
+    else if(r.cat === "thess") region = "ΘΕΣΣΑΛΟΝΙΚΗ";
+    if(region) sets[region].add(coreName(r.hospital));
+  });
+  return sets;
+}
+
+function regionOf(r, regionSets){
+  const ypeN = normalize(r.ype || "");
+  if(ypeN.includes("ΑΤΤΙΚΗΣ")) return "ΑΤΤΙΚΗ";
+  if(ypeN.includes("ΘΕΣΣΑΛΟΝΙΚΗΣ")) return "ΘΕΣΣΑΛΟΝΙΚΗ";
+  if(r.ype) return "OTHER"; // has a ΥΠΕ, just not one of the two we specifically track
+  if(r.cat === "attiki" || r.cat === "evag") return "ΑΤΤΙΚΗ";
+  if(r.cat === "thess") return "ΘΕΣΣΑΛΟΝΙΚΗ";
+  if(!r.hospital) return "UNKNOWN";
+  const key = coreName(r.hospital);
+  if(regionSets["ΑΤΤΙΚΗ"].has(key)) return "ΑΤΤΙΚΗ";
+  if(regionSets["ΘΕΣΣΑΛΟΝΙΚΗ"].has(key)) return "ΘΕΣΣΑΛΟΝΙΚΗ";
+  return "UNKNOWN";
+}
+
 function interpretQuery(qRaw){
   const q = qRaw.trim();
   if(!q) return null;
   const words = q.split(/\s+/).filter(Boolean);
+
+  // A region name mentioned anywhere in the query means "only hospitals in that region" —
+  // check this FIRST, before the region word gets mistaken for a fuzzy hospital-name guess.
+  for(let i = 0; i < words.length; i++){
+    const wNorm = normalize(words[i]);
+    for(const region of Object.keys(REGION_WORD_FORMS)){
+      if(REGION_WORD_FORMS[region].includes(wNorm)){
+        const rest = words.slice(0, i).concat(words.slice(i + 1)).join(" ").trim();
+        return { type: "region", region, exam: rest };
+      }
+    }
+  }
 
   // Try splitting a multi-word query into a hospital part + an exam part (either order).
   for(let i = 1; i < words.length; i++){
@@ -354,24 +410,30 @@ function matchingKeys(index, q){
   });
 }
 
-function directResults(mode, q){
-  // EXAM mode.
+function directResults(mode, q, pool, labelText){
+  // EXAM mode. `pool` optionally restricts the search to a pre-filtered subset of records
+  // (used by region searches); `labelText` is what extracted hits get shown under — the
+  // text actually being searched for, NOT necessarily the full original raw query (a region
+  // search only searches the EXAM part, and must not mislabel results with the region word).
+  const label = labelText !== undefined ? labelText : query;
+  const source = pool || allRecords();
+
   // 1) Records that are specifically ABOUT this exam (r.exam matches) — shown in full.
-  const direct = allRecords().filter(r => r.exam && wordMatch(normalize(r.exam), q));
+  const direct = source.filter(r => r.exam && wordMatch(normalize(r.exam), q));
 
   // 2) The big "Χαρτογράφηση" hospital-info blobs (cat "map") sometimes mention a specific
   //    exam in passing (e.g. "Υπέρηχοι (Τρίπλεξ): 2132058379") buried in a huge paragraph.
   //    Scan those blobs sentence-by-sentence and pull out ONLY the sentence(s) that actually
   //    mention the searched exam — never the whole blob.
   const extracted = [];
-  allRecords().filter(r => r.cat === "map" && r.detail).forEach(r => {
+  source.filter(r => r.cat === "map" && r.detail).forEach(r => {
     const sentences = r.detail.split(/(?<=[.,\n])\s*/).map(s => s.trim()).filter(s => s.length > 0);
     const hits = sentences.filter(s => wordMatch(normalize(s), q));
     if(hits.length){
       extracted.push({
         cat: "map-extract",
         hospital: r.hospital,
-        exam: query,
+        exam: label,
         detail: hits.join(" "),
         custom: false
       });
@@ -445,6 +507,22 @@ function render(){
 
   const interpreted = interpretQuery(query);
 
+  if(interpreted.type === "region"){
+    const regionSets = buildRegionHospitalSets();
+    const pool = allRecords().filter(r => regionOf(r, regionSets) === interpreted.region);
+    const regionLabel = interpreted.region.charAt(0) + interpreted.region.slice(1).toLowerCase();
+    if(!interpreted.exam){
+      // Region only (e.g. just "Αττική") — list everything we have for that region.
+      renderDirectList(pool, "exam", `Νοσοκομεία — ${regionLabel}`, undefined);
+      return;
+    }
+    const nExam = normalize(interpreted.exam);
+    const matches = directResults("exam", nExam, pool, interpreted.exam);
+    const title = `${interpreted.exam} — ${regionLabel}`;
+    renderDirectList(matches, "exam", title, nExam);
+    return;
+  }
+
   if(interpreted.type === "combo"){
     const matches = comboResults(interpreted.hospital, interpreted.exam);
     if(matches && matches.length){
@@ -456,7 +534,7 @@ function render(){
     // "Αθήνα" that happens to fuzzy-match one specific hospital's name) and produced an
     // empty intersection. Don't dead-end — fall back to showing the exam on its own,
     // which is almost always the useful answer ("where can I get an MRI").
-    const fallback = directResults("exam", normalize(interpreted.exam));
+    const fallback = directResults("exam", normalize(interpreted.exam), undefined, interpreted.exam);
     if(fallback.length){
       renderDirectList(fallback, "exam", undefined, normalize(interpreted.exam));
       return;
@@ -475,7 +553,7 @@ function render(){
   }
 
   // interpreted.type === "exam": show only the hospitals/lines relevant to this exam.
-  const matches = directResults("exam", normalize(interpreted.query));
+  const matches = directResults("exam", normalize(interpreted.query), undefined, interpreted.query);
   renderDirectList(matches, "exam", undefined, normalize(interpreted.query));
 }
 
