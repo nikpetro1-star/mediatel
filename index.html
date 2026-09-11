@@ -212,9 +212,24 @@ function closeMatch(a, b){
   const prefixLen = Math.max(4, minLen - 2);
   return a.slice(0, prefixLen) === b.slice(0, prefixLen);
 }
+// Words so generic they appear in almost EVERY record ("appointment", "hospital", "exam",
+// "phone", "clinic"...) carry no distinguishing power as search terms — treating them as
+// real criteria is what caused "Ραντεβού Νοσοκομείο Βόλου" to match 79 unrelated hospitals
+// (nearly every record's text mentions "ραντεβού" and "νοσοκομείο" somewhere). Strip them
+// from the QUERY side before matching; they still work fine as part of label text.
+const QUERY_STOPWORDS = new Set([
+  "ΡΑΝΤΕΒΟΥ","ΝΟΣΟΚΟΜΕΙΟ","ΝΟΣΟΚΟΜΕΙΟΥ","ΝΟΣΟΚΟΜΕΙΑ","ΕΞΕΤΑΣΗ","ΕΞΕΤΑΣΕΙΣ",
+  "ΤΗΛΕΦΩΝΟ","ΤΗΛΕΦΩΝΑ","ΤΗΛ","ΙΑΤΡΕΙΟ","ΙΑΤΡΕΙΑ","ΚΛΙΝΙΚΗ","ΚΛΙΝΙΚΕΣ",
+  "ΓΕΝΙΚΟ","ΓΕΝΙΚΗ","ΓΙΑ","ΣΤΟ","ΣΤΗΝ","ΚΑΙ","ΤΟΥ","ΤΗΣ","ΠΛΗΡΟΦΟΡΙΕΣ","ΠΛΗΡΟΦΟΡΙΑ"
+]);
+function stripStopwords(words){
+  const kept = words.filter(w => !QUERY_STOPWORDS.has(normalize(w)));
+  return kept.length ? kept : words; // never end up with an empty query
+}
+
 function wordMatch(labelNorm, queryNorm){
   if(!queryNorm) return true;
-  const qWords = queryNorm.split(/\s+/).filter(Boolean);
+  const qWords = stripStopwords(queryNorm.split(/\s+/).filter(Boolean));
   // ignore tiny label words (articles/initials like "Ο","Η") that trivially match via includes()
   const lWords = labelNorm.split(/\s+/).filter(w => w.length >= 3);
   if(qWords.length === 0) return true;
@@ -339,9 +354,14 @@ function interpretQuery(qRaw){
   }
 
   // Try splitting a multi-word query into a hospital part + an exam part (either order).
+  // Skip any split where one side is PURELY generic filler words ("Ραντεβού", "Νοσοκομείο"
+  // alone) — treating a stopword-only fragment as a real exam/hospital name is how
+  // "Ραντεβού Νοσοκομείο Βόλου" ended up matching 78 unrelated hospitals nationwide.
+  const hasRealContent = (ws) => ws.some(w => !QUERY_STOPWORDS.has(normalize(w)));
   for(let i = 1; i < words.length; i++){
-    const partA = words.slice(0, i).join(" ");
-    const partB = words.slice(i).join(" ");
+    const wordsA = words.slice(0, i), wordsB = words.slice(i);
+    if(!hasRealContent(wordsA) || !hasRealContent(wordsB)) continue;
+    const partA = wordsA.join(" "), partB = wordsB.join(" ");
     if(hospitalMatches(partA).length && examMatchesWhole(partB).length){
       return { type: "combo", hospital: partA, exam: partB };
     }
