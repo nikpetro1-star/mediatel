@@ -171,6 +171,11 @@ function coreName(s){
   let n = normalize(s).replace(/[.'"()><\-]/g,' ').replace(/\s+/g,' ').trim();
   return n.split(' ').filter(w => w && !STOP.has(w)).join(' ').trim();
 }
+// Honorifics/generic words that appear in DOZENS of unrelated hospital names ("Άγιος
+// Παύλος", "Άγιος Ανδρέας", "Άγιος Σάββας"...) — sharing just one of these is never
+// enough on its own to say two hospital names refer to the same place.
+const HOSPITAL_GENERIC_WORDS = new Set(["ΑΓΙΟΣ","ΑΓΙΑ","ΑΓΙΟΙ","ΑΓΙΩΝ","ΑΓΙΟΥ","ΑΓΙΑΣ"]);
+
 function sameHospital(a,b){
   const ca = coreName(a), cb = coreName(b);
   if(!ca || !cb) return false;
@@ -183,13 +188,18 @@ function sameHospital(a,b){
   const longer  = ca.length <= cb.length ? cb : ca;
   if(shorter.length >= 5 && longer.includes(shorter)) return true;
 
-  // Otherwise compare word-by-word: short words/abbreviations (ΚΑΤ, ΚΥ, ...) must match
-  // EXACTLY; longer words may match by shared stem to stay declension-tolerant.
-  const wordsA = ca.split(" ").filter(Boolean);
-  const wordsB = cb.split(" ").filter(Boolean);
-  return wordsA.some(wa => wordsB.some(wb => {
-    if(wa.length < 4 || wb.length < 4) return wa === wb;
-    return wa === wb || wa.includes(wb) || wb.includes(wa) || closeMatch(wa, wb);
+  // Otherwise compare word-by-word. Require ALL of the shorter name's MEANINGFUL words
+  // (ignoring generic honorifics like "Άγιος") to find a match on the other side — matching
+  // on just one shared word ("Άγιος") is how "Άγιος Παύλος" got confused with "Άγιος
+  // Ανδρέας". Short words/abbreviations (ΚΑΤ, ΚΥ, ...) must match EXACTLY; longer words
+  // may match by shared stem to stay declension-tolerant.
+  const wordsShort = shorter.split(" ").filter(Boolean);
+  const wordsLong = longer.split(" ").filter(Boolean);
+  const meaningful = wordsShort.filter(w => !HOSPITAL_GENERIC_WORDS.has(w));
+  const toCheck = meaningful.length ? meaningful : wordsShort;
+  return toCheck.every(ws => wordsLong.some(wl => {
+    if(ws.length < 4 || wl.length < 4) return ws === wl;
+    return ws === wl || ws.includes(wl) || wl.includes(ws) || closeMatch(ws, wl);
   }));
 }
 function esc(s){ return (s||"").toString().replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;"); }
@@ -556,7 +566,8 @@ function render(){
     // which is almost always the useful answer ("where can I get an MRI").
     const fallback = directResults("exam", normalize(interpreted.exam), undefined, interpreted.exam);
     if(fallback.length){
-      renderDirectList(fallback, "exam", undefined, normalize(interpreted.exam));
+      const note = `Δεν βρέθηκε "${interpreted.exam}" για "${interpreted.hospital}" — όλα τα αποτελέσματα για "${interpreted.exam}"`;
+      renderDirectList(fallback, "exam", note, normalize(interpreted.exam));
       return;
     }
     contentEl.innerHTML = `<div class="empty">Δεν βρέθηκε τίποτα για "${esc(query)}". Δοκίμασε πιο απλή αναζήτηση.</div>`;
