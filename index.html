@@ -68,7 +68,7 @@
     <h1>Ενιαία Βάση Νοσοκομείων</h1>
     <div class="searchbox" id="singleSearchBox">
       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
-      <input id="search" placeholder="π.χ. Τρίπλεξ, Holter, Κολονοσκόπηση, Ιπποκράτειο, Θεσσαλονίκη...">
+      <input id="search" placeholder="π.χ. Αγία Σοφία, Άγιος Ανδρέας, Μαλακών μορίων, Τρίπλεξ...">
     </div>
   </header>
   <main>
@@ -81,59 +81,19 @@
 <script>
 const SHEET_CSV_URL = "";
 
-// ΠΛΗΡΗΣ, ΑΤΟΦΙΑ ΚΑΙ ΕΝΙΑΙΑ ΒΑΣΗ ΔΕΔΟΜΕΝΩΝ (ΟΛΑ ΤΑ ΝΟΣΟΚΟΜΕΙΑ, ΕΞΕΤΑΣΕΙΣ, ΑΘΗΝΑ, ΘΕΣΣΑΛΟΝΙΚΗ, ΕΠΑΡΧΙΑ ΚΑΙ ΤΕΤΡΑΔΙΟ)
 let SEED_DATA = [
-  {"cat": "evag", "ype": "1η ΥΠΕ", "exam": "ΙΑΤΡΕΙΟ ΠΟΝΟΥ", "hospital": "ΕΥΑΓΓΕΛΙΣΜΟΣ", "detail": "2132041273"},
-  {"cat": "evag", "ype": "1η ΥΠΕ", "exam": "ΙΑΤΡΕΙΟ ΕΙΔΙΚΩΝ ΛΟΙΜΩΞΕΩΝ", "hospital": "ΕΥΑΓΓΕΛΙΣΜΟΣ", "detail": "2132041242"},
-  {"cat": "evag", "ype": "1η ΥΠΕ", "exam": "ΙΑΤΡΕΙΟ ΟΓΚΟΛΟΓΙΚΟ", "hospital": "ΕΥΑΓΓΕΛΙΣΜΟΣ", "detail": "2132041234 - 2132041001"},
-  {"cat": "evag", "ype": "1η ΥΠΕ", "exam": "ΒΙΟΜΕΤΡΙΑ", "hospital": "ΕΥΑΓΓΕΛΙΣΜΟΣ", "detail": "2132041246"},
-  {"cat": "evag", "ype": "1η ΥΠΕ", "exam": "ΒΡΟΓΧΟΣΚΟΠΗΣΗ ΓΙΑ ΤΗΝ ΠΝΕΥΜΟΝΟΛΟΓΙΚΗ ΚΛΙΝΙΚΗ", "hospital": "ΕΥΑΓΓΕΛΙΣΜΟΣ", "detail": "ΚΛΕΙΝΟΝΤΑΙ ΡΑΝΤΕΒΟΥ ΠΡΩΤΑ ΜΕ ΠΝΕΥΜΟΝΟΛΟΓΟ ΚΑΙ Ο ΠΝΕΥΜΟΝΟΛΟΓΟΣ ΚΛΕΙΝΕΙ ΓΙΑ ΤΗΝ ΕΞΕΤΑΣΗ"},
-  {"cat": "evag", "ype": "1η ΥΠΕ", "exam": "ΒΡΟΓΧΟΣΚΟΠΗΣΗ ΓΙΑ ΚΕΘ-ΠΝΕΥΜΟΝΟΛΟΓΙΚΗ", "hospital": "ΕΥΑΓΓΕΛΙΣΜΟΣ", "detail": "ΡΑΝΤΕΒΟΥ 2132041712"},
-  {"cat": "evag", "ype": "1η ΥΠΕ", "exam": "ΔΙΑΒΗΤΙΚΟ ΠΟΔΙ", "hospital": "ΕΥΑΓΓΕΛΙΣΜΟΣ", "detail": "ΡΑΝΤΕΒΟΥ ΣΤΗΝ Δ΄ ΠΑΘΟΛΟΓΙΚΗ ΙΑΤΡΕΙΟ ΑΓΓΕΙΟΛΟΓΙΚΟ ΠΑΘΟΛΟΓΙΚΟ"},
-  {"cat": "evag", "ype": "1η ΥΠΕ", "exam": "ΗΛΕΚΤΡΟΜΥΟΓΡΑΦΗΜΑ", "hospital": "ΕΥΑΓΓΕΛΙΣΜΟΣ", "detail": "2132045356 2132041041 2132041050"},
-  {"cat": "evag", "ype": "1η ΥΠΕ", "exam": "ΠΑΧΥΜΕΤΡΙΑ", "hospital": "ΕΥΑΓΓΕΛΙΣΜΟΣ", "detail": "ΡΑΝΤΕΒΟΥ ΣΤΗΝ ΟΦΘΑΛΜΟΛΟΓΙΚΗ ΙΑΤΡΕΙΟ ΓΛΑΥΚΩΜΑΤΟΣ"},
-  {"cat": "evag", "ype": "1η ΥΠΕ", "exam": "ΒΥΘΟΣΚΟΠΗΣΗ", "hospital": "ΕΥΑΓΓΕΛΙΣΜΟΣ", "detail": "ΡΑΝΤΕΒΟΥ ΣΤΗΝ ΟΦΘΑΛΜΟΛΟΓΙΚΗ ΙΑΤΡΕΙΟ ΟΦΘΑΛΜΟΛΟΓΙΚΟ"},
-  {"cat": "evag", "ype": "1η ΥΠΕ", "exam": "ΠΑΡΑΚΕΝΤΗΣΗ ΘΥΡΕΟΕΙΔΟΥΣ", "hospital": "ΕΥΑΓΓΕΛΙΣΜΟΣ", "detail": "2132043247-3248"},
-  {"cat": "evag", "ype": "1η ΥΠΕ", "exam": "PET SCAN", "hospital": "ΕΥΑΓΓΕΛΙΣΜΟΣ", "detail": "2132041365"},
-  {"cat": "evag", "ype": "1η ΥΠΕ", "exam": "ΤΕΣΤ ΠΑΠ", "hospital": "ΕΥΑΓΓΕΛΙΣΜΟΣ", "detail": "Κάθε ΤΡΊΤΗ ΚΑΙ ΠΕΜΠΤΗ ΚΤΙΡΙΟ ΕΡΓΑΣΤΗΡΙΩΝ ΚΥΤΤΑΡΟΛΟΓΙΚΟ 10:00 π.μ. - 12:00μ.μ. Τηλέφωνο 2132043248-3247"},
-  {"cat": "evag", "ype": "1η ΥΠΕ", "exam": "ΗΛΕΚΤΡΟΕΓΚΕΦΑΛΟΓΡΑΦΗΜΑ", "hospital": "ΕΥΑΓΓΕΛΙΣΜΟΣ", "detail": "2132044227 ή 2132044181"},
-  {"cat": "evag", "ype": "1η ΥΠΕ", "exam": "ΓΑΣΤΡΟΣΚΟΠΗΣΗ", "hospital": "ΕΥΑΓΓΕΛΙΣΜΟΣ", "detail": "Πρέπει να προηγηθεί εξέταση με γαστρεντερολόγο"},
-  {"cat": "evag", "ype": "1η ΥΠΕ", "exam": "Κολονοσκόπηση", "hospital": "ΕΥΑΓΓΕΛΙΣΜΟΣ", "detail": "Θα πρέπει πρώτα να προηγηθεί ραντεβού με Γαστρεντερολογικό ιατρείο"},
-  {"cat": "thess", "ype": "3η/4η ΥΠΕ", "exam": "ΜΑΙΕΥΤΙΚΟ-ΓΥΝΑΙΚΟΛΟΓΙΚΟ", "hospital": "ΙΠΠΟΚΡΑΤΕΙΟ ΘΕΣΣΑΛΟΝΙΚΗΣ", "detail": "ΜΑΣΤΟΣ Ε.Ι.Β Μ-Γ - Β Μ/ΚΗ-Γ/ΚΗ"},
-  {"cat": "thess", "ype": "3η/4η ΥΠΕ", "exam": "ΜΑΙΕΥΤΙΚΟ-ΓΥΝΑΙΚΟΛΟΓΙΚΟ", "hospital": "ΑΧΕΠΑ", "detail": "ΜΑΣΤΟΥ ΠΡΧ"},
-  {"cat": "thess", "ype": "3η/4η ΥΠΕ", "exam": "ΑΞΟΝΙΚΗ / ΜΑΓΝΗΤΙΚΗ", "hospital": "ΙΠΠΟΚΡΑΤΕΙΟ ΘΕΣΣΑΛΟΝΙΚΗΣ", "detail": "Μαγνητικός Τομογράφος: 1η κάθε εργάσιμη μέρα, ώρες επικοινωνίας 11:00-13:00, τηλ. επικ. 2313312518"},
   {"cat": "attiki", "ype": "1η ΥΠΕ", "exam": "TRIPLEX", "hospital": "ΓΕΝΝΗΜΑΤΑΣ", "detail": "ΙΑΤΡΕΙΟ ΥΠΕΡΗΧΩΝ 2 (TRIPLEX) ΤΡΙΠΛΕΞ ΚΑΡΔΙΑΣ"},
   {"cat": "attiki", "ype": "1η ΥΠΕ", "exam": "TRIPLEX", "hospital": "ΕΛΠΙΣ", "detail": "ΤΡΙΠΛΕΞ ΚΑΡΔΙΑΣ"},
   {"cat": "attiki", "ype": "1η ΥΠΕ", "exam": "TRIPLEX", "hospital": "ΑΓΙΟΙ ΑΝΑΡΓΥΡΟΙ", "detail": "ΙΑΤΡΕΙΟ TRIPLEX ΚΑΡΔΙΑΣ ΖΕΖΑΣ"},
   {"cat": "attiki", "ype": "1η ΥΠΕ", "exam": "TRIPLEX", "hospital": "ΕΥΑΓΓΕΛΙΣΜΟΣ", "detail": "TRIPLEX ΑΓΓΕΙΩΝ 2132041386 TRIPLEX ΚΑΡΔΙΑΣ 2132041976"},
-  {"cat": "attiki", "ype": "1η ΥΠΕ", "exam": "TRIPLEX", "hospital": "ΚΑΤ", "detail": "TRIPLEX ΚΑΡΔΙΑΣ - ΓΕΩΡΓΟΠΟΥΛΟΥ ΜΑΡΙΑ"},
-  {"cat": "attiki", "ype": "1η ΥΠΕ", "exam": "TRIPLEX", "hospital": "ΦΛΕΜΙΓΚ", "detail": "TRIPLEX ΚΑΡΔΙΑΣ"},
-  {"cat": "attiki", "ype": "1η ΥΠΕ", "exam": "TRIPLEX", "hospital": "ΚΩΣΤΑΝΤΟΠΟΥΛΕΙΟ", "detail": "TRIPLEX ΚΑΡΔΙΑΣ"},
-  {"cat": "attiki", "ype": "2η ΥΠΕ", "exam": "TRIPLEX", "hospital": "ΒΟΥΛΑΣ", "detail": "ΤΡΙΠΛΕΞ ΚΑΡΔΙΑΣ ΥΠΕΡΗΧΟΣ ΚΑΡΔΙΑΣ"},
-  {"cat": "attiki", "ype": "1uniqueItems", "exam": "TRIPLEX", "hospital": "ΕΚΑ", "detail": "ΤΡΙΠΛΕΞ"},
-  {"cat": "attiki", "ype": "1η ΥΠΕ", "exam": "TRIPLEX", "hospital": "ΚΥ ΒΥΡΩΝΑ 1ο", "detail": "TRIPLEX ΚΑΡΔΙΑΣ"},
-  {"cat": "attiki", "ype": "2η ΥΠΕ", "exam": "TRIPLEX", "hospital": "ΚΥ ΠΕΙΡΑΙΑ", "detail": "ΤΡΙΠΛΕΞ"},
-  {"cat": "attiki", "ype": "1η ΥΠΕ", "exam": "HOLTER", "hospital": "ΓΕΝΝΗΜΑΤΑΣ", "detail": "2132032343 (Δευτέρα-Παρασκευή 7:30-14:30)"},
-  {"cat": "attiki", "ype": "1η ΥΠΕ", "exam": "HOLTER", "hospital": "ΕΥΑΓΓΕΛΙΣΜΟΣ", "detail": "2132041522 (24ωρου πίεσης, όχι ρυθμού)"},
-  {"cat": "attiki", "ype": "1η ΥΠΕ", "exam": "STRESS ECHO", "hospital": "ΕΡΥΘΡΟΣ ΣΤΑΥΡΟΣ", "detail": "ΙΑΤΡΕΙΟ STRESS ECHO Β΄ΚΑΡΔΙΟΛΟΓΙΚΗΣ"},
-  {"cat": "attiki", "ype": "1η ΥΠΕ", "exam": "ΣΠΙΡΟΜΕΤΡΗΣΗ", "hospital": "ΕΥΑΓΓΕΛΙΣΜΟΣ", "detail": "ΣΠΙΡΟΜΕΤΡΗΣΗ ΔΙΑΧΥΣΗ 2132041738"},
-  {"cat": "attiki", "ype": "1η ΥΠΕ", "exam": "ΤΕΣΤ ΚΟΠΩΣΕΩΣ", "hospital": "ΕΥΑΓΓΕΛΙΣΜΟΣ", "detail": "2132041257 & 2132041649"},
-  {"cat": "attiki", "ype": "1η ΥΠΕ", "exam": "ΤΕΣΤ ΠΑΠ", "hospital": "ΕΥΑΓΓΕΛΙΣΜΟΣ", "detail": "Κάθε ΤΡΊΤΗ ΚΑΙ ΠΕΜΠΤΗ ΚΤΙΡΙΟ ΕΡΓΑΣΤΗΡΙΩΝ ΚΥΤΤΑΡΟΛΟΓΙΚΟ 10:00 π.μ. - 12:00μ.μ."},
-  {"cat": "attiki", "ype": "1η ΥΠΕ", "exam": "ΥΠΝΟΥ", "hospital": "ΕΥΑΓΓΕΛΙΣΜΟΣ", "detail": "ΙΑΤΡΕΙΟ ΥΠΝΟΥ ΕΠΑΝΕΞΕΤΑΣΗ ΙΑΤΡΕΙΟ ΥΠΝΟΥ ΚΕΘ"},
-  {"cat": "attiki", "ype": "1η ΥΠΕ", "exam": "ΠΟΝΟΥ", "hospital": "ΕΥΑΓΓΕΛΙΣΜΟΣ", "detail": "ΙΑΤΡΕΙΟ ΠΟΝΟΥ 2132041195"},
-  {"cat": "attiki", "ype": "1η ΥΠΕ", "exam": "ΜΑΣΤΟΥ", "hospital": "ΕΥΑΓΓΕΛΙΣΜΟΣ", "detail": "ΙΑΤΡΕΙΟ ΜΑΣΤΟΥ ΒΧ ΙΑΤΡΕΙΟ ΜΑΣΤΟΥ Γ' ΧΕΙΡΟΥΡΓΙΚΗΣ"},
-  {"cat": "attiki", "ype": "1η ΥΠΕ", "exam": "ΜΑΣΤΟΓΡΑΦΙΑ", "hospital": "ΕΥΑΓΓΕΛΙΣΜΟΣ", "detail": "2132041386"},
-  {"cat": "attiki", "ype": "1η ΥΠΕ", "exam": "ΚΟΛΠΟΣΚΟΠΗΣΕΙΣ", "hospital": "ΕΛΕΝΑ", "detail": "ΙΑΤΡΕΙΟ ΚΟΛΠΟΣΚΟΠΗΣΕΩΝ"},
-  {"cat": "attiki", "ype": "1η ΥΠΕ", "exam": "ΚΟΛΠΟΣΚΟΠΗΣΕΙΣ", "hospital": "ΑΛΕΞΑΝΔΡΑ", "detail": "ΙΑΤΡΕΙΟ ΚΟΛΠΟΣΚΟΠΗΣΕΩΝ"},
-  {"cat": "attiki", "ype": "2η ΥΠΕ", "exam": "ΚΟΛΠΟΣΚΟΠΗΣΕΙΣ", "hospital": "ΤΖΑΝΕΙΟ", "detail": "ΤΕΙ ΚΟΛΠΟΣΚΟΠΗΣΗΣ - ΜΑΙΕΥΤΙΚΗ ΓΥΝΑΙΚΟΛΟΓΙΚΗ ΚΛΙΝΙΚ"},
-  {"cat": "attiki", "ype": "2η ΥΠΕ", "exam": "ΚΟΛΠΟΣΚΟΠΗΣΕΙΣ", "hospital": "ΜΕΤΑΞΑ", "detail": "ΚΟΛΠΟΣΚΟΠΗΣΕΙΣ- ΓΥΝΑΙΚΟΛΟΓΙΚΟ ΤΜΗΜΑ"},
-  {"cat": "notebook", "ype": "", "exam": "Κολποσκόπηση", "hospital": "ΠΑΝΕΠΙΣΤΗΜΙΑΚΟ ΡΙΟ (ΠΑΤΡΑ)", "detail": "Γυναικολογικό Ε.Ι. μόνο Τετάρτη"},
-  {"cat": "notebook", "ype": "", "exam": "Κολονοσκόπηση / Γαστροσκόπηση", "hospital": "ΝΟΣΟΚΟΜΕΙΟ ΧΑΝΙΩΝ", "detail": "Ραντεβού κλείνονται στο τμήμα, τηλ. 28210-71010"},
-  {"cat": "map", "ype": "1η ΥΠΕ (Αττικής)", "exam": "", "hospital": "ΓΕΝΙΚΟ ΝΟΣΟΚΟΜΕΙΟ ΑΘΗΝΩΝ O ΕΥΑΓΓΕΛΙΣΜΟΣ- ΠΟΛΥΚΛΙΝΙΚΗ", "detail": "Υπεύθυνος επικοινωνίας : κα Κουτρέτση 2132041166- 2132041169", "apptSchedule": "Έκδοση προγράμματος: στις 22 κάθε μήνα για τον επόμενο."},
+  {"cat": "notebook", "ype": "6η ΥΠΕ", "exam": "ΜΑΓΝΗΤΙΚΟΣ ΤΟΜΟΓΡΑΦΟΣ (ΚΑΡΔΙΑΣ)", "hospital": "ΑΓΙΟΣ ΑΝΔΡΕΑΣ (ΠΑΤΡΑ)", "detail": "Τηλ. 2613601615, ώρες 9:00-11:00, κάθε Πέμπτη, μόνο για τομογραφία καρδιάς"},
+  {"cat": "notebook", "ype": "1η ΥΠΕ", "exam": "ΑΝΑΠΤΥΞΙΟΛΟΓΟΣ ΠΑΙΔΙΩΝ", "hospital": "ΑΓΛΑΪΑ ΚΥΡΙΑΚΟΥ", "detail": "Τηλ. 2132009812 / 2132009198 / 2106773442-443. Μόνο Ε.Ι. (1ος όροφος), Δε-Πε 09:00-13:00"},
+  {"cat": "notebook", "ype": "1η ΥΠΕ", "exam": "ΥΠΕΡΗΧΟΣ ΜΑΛΑΚΩΝ ΜΟΡΙΩΝ", "hospital": "ΓΕΝΝΗΜΑΤΑΣ", "detail": "Με φυσική πορεία στο Ιατρείο Υπερήχων, τηλ. 2132034170. Δεν κλείνονται ραντεβού, μόνο πληροφορίες"},
+  {"cat": "map", "ype": "1η ΥΠΕ (Αττικής)", "exam": "", "hospital": "ΓΕΝΙΚΟ ΝΟΣΟΚΟΜΕΙΟ ΠΑΙΔΩΝ ΑΘΗΝΩΝ \"Η ΑΓΙΑ ΣΟΦΙΑ\"", "detail": "Απογευματινά ραντεβού: Δεσμεύονται στο 1535.", "apptSchedule": "Χρόνος υστέρησης: Εξυπηρετούνται οι πολίτες.\nΈκδοση προγράμματος: Την τελευταία Παρασκευή του μήνα."},
+  {"cat": "map", "ype": "6η ΥΠΕ", "exam": "", "hospital": "Γ.Ν ΠΑΤΡΩΝ ''Ο ΑΓΙΟΣ ΑΝΔΡΕΑΣ''", "detail": "Καλούν στο 2613601615 για μαγνητικό, 1566 για πρωινά.", "apptSchedule": "Τα ραντεβού δίνονται ανά 3μηνο αρχές του μήνα."},
+  {"cat": "map", "ype": "1η ΥΠΕ (Αττικής)", "exam": "", "hospital": "ΓΕΝΙΚΟ ΝΟΣΟΚΟΜΕΙΟ ΑΘΗΝΩΝ O ΕΥΑΓΓΕΛΙΣΜΟΣ- ΠΟΛΥΚΛΙΝΙΚΗ", "detail": "Υπεύθυνος επικοινωνίας : κα Κουτρέτση 2132041166", "apptSchedule": "Έκδοση προγράμματος: στις 22 κάθε μήνα για τον επόμενο."},
   {"cat": "map", "ype": "2η ΥΠΕ (Πειραιώς και Αιγαίου)", "exam": "", "hospital": "ΓΕΝΙΚΟ ΝΟΣΟΚΟΜΕΙΟ ΝΙΚΑΙΑΣ ΠΕΙΡΑΙΑ \"ΆΓΙΟΣ ΠΑΝΤΕΛΕΗΜΩΝ\"", "detail": "Γραμματεία και πληροφορίες νοσοκομείου.", "apptSchedule": "Έκδοση προγράμματος κάθε Δίμηνο σε βάθος τριμήνου."},
-  {"cat": "map", "ype": "1η ΥΠΕ (Αττικής)", "exam": "", "hospital": "Α.Ο.Ν.Α. Ο ΑΓΙΟΣ ΣΑΒΒΑΣ", "detail": "Ογκολογικό νοσοκομείο", "apptSchedule": "Χρόνος υστέρησης: επόμενη εργάσιμη\nΈκδοση προγράμματος: κάθε 1 εργάσιμη μήνα."},
-  {"cat": "map", "ype": "1η ΥΠΕ (Αττικής)", "exam": "", "hospital": "ΓΕΝΙΚΟ ΝΟΣΟΚΟΜΕΙΟ ΑΘΗΝΩΝ  \"ΙΠΠΟΚΡΑΤΕΙΟ\"", "detail": "Αθήνα", "apptSchedule": "Έκδοση προγράμματος: Δίνεται προτελευταία Πέμπτη κάθε μήνα για τον επόμενο."},
-  {"cat": "map", "ype": "4η ΥΠΕ (Μακεδονίας και Θράκης)", "exam": "", "hospital": "Ιπποκράτειο Νοσοκομείο Θεσσαλονίκης", "detail": "Θεσσαλονίκη", "apptSchedule": "Τα ραντεβού ανοίγουν κάθε μέρα αλλά με πρώτο ραντεβού τρεις μήνες μετά."}
+  {"cat": "map", "ype": "1η ΥΠΕ (Αττικής)", "exam": "", "hospital": "Α.Ο.Ν.Α. Ο ΑΓΙΟΣ ΣΑΒΒΑΣ", "detail": "Ογκολογικό νοσοκομείο", "apptSchedule": "Χρόνος υστέρησης: επόμενη εργάσιμη\nΈκδοση προγράμματος: κάθε 1 εργάσιμη μήνα."}
 ];
 
 const STORAGE_KEY = "hospital-registry-custom-entries";
@@ -163,49 +123,24 @@ function formatDetail(s){
   return esc(s.toString().replace(/\. (?=[Α-ΩA-Zα-ωa-z0-9])/g, ".\n"));
 }
 
-const HOSPITAL_SYNONYMS = [
-  { keywords: ["ΝΙΚΑΙΑ", "ΠΑΝΤΕΛΕΗΜΩΝ", "ΚΡΑΤΙΚΟ ΝΙΚΑΙΑΣ"], main: "ΝΙΚΑΙΑ" },
-  { keywords: ["ΣΙΣΜΑΝΟΓΛΕΙΟ", "ΦΛΕΜΙΓΚ"], main: "ΣΙΣΜΑΝΟΓΛΕΙΟ" },
-  { keywords: ["ΕΥΑΓΓΕΛΙΣΜΟΣ", "ΠΟΛΥΚΛΙΝΙΚΗ"], main: "ΕΥΑΓΓΕΛΙΣΜΟΣ" },
-  { keywords: ["ΚΟΡΓΙΑΛΕΝΕΙΟ", "ΜΠΕΝΑΚΕΙΟ", "ΕΕΣ"], main: "ΚΟΡΓΙΑΛΕΝΕΙΟ" }
-];
-
-function getMatchedHospitalNames(qNorm) {
-  for (const group of HOSPITAL_SYNONYMS) {
-    if (group.keywords.some(kw => qNorm.includes(kw))) {
-      return group.keywords;
-    }
-  }
-  return null;
-}
-
 let query = "";
 
 function render(){
   const contentEl = document.getElementById("content");
   const trimmed = query.trim();
   if(!trimmed){
-    contentEl.innerHTML = `<div class="empty">Γράψτε μια εξέταση (π.χ. "Τρίπλεξ", "Κολονοσκόπηση") ή νοσοκομείο (π.χ. "Ιπποκράτειο", "Θεσσαλονίκη").</div>`;
+    contentEl.innerHTML = `<div class="empty">Γράψτε οτιδήποτε θέλετε να αναζητήσετε...</div>`;
     return;
   }
 
   const qNorm = normalize(trimmed);
   const searchWords = qNorm.split(/[\s\-\/,"().]+/).filter(Boolean);
 
-  const matchedKeywords = getMatchedHospitalNames(qNorm);
-
-  let results = [];
-  if (matchedKeywords) {
-    results = allRecords().filter(r => {
-      const hNorm = normalize(r.hospital);
-      return matchedKeywords.some(kw => hNorm.includes(kw));
-    });
-  } else {
-    results = allRecords().filter(r => {
-      const text = normalize([r.hospital, r.exam, r.detail, r.ype, r.apptSchedule].filter(Boolean).join(" "));
-      return searchWords.every(qw => text.includes(qw));
-    });
-  }
+  // Εύκαμπτη αναζήτηση: βρίσκει εγγραφές που περιέχουν οποιαδήποτε από τις λέξεις-κλειδιά
+  const results = allRecords().filter(r => {
+    const text = normalize([r.hospital, r.exam, r.detail, r.ype, r.apptSchedule].filter(Boolean).join(" "));
+    return searchWords.some(qw => text.includes(qw));
+  });
 
   if(results.length === 0){
     contentEl.innerHTML = `<div class="empty">Δεν βρέθηκε τίποτα για "${esc(query)}".</div>`;
